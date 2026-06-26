@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Advanced Pomodoro Timer</title>
+
+  <style>
+    *{
+      margin:0;
+      padding:0;
+      box-sizing:border-box;
+      font-family:Arial, sans-serif;
+    }
+
+    body{
+      height:100vh;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      background:linear-gradient(135deg,#ff6b6b,#6c5ce7);
+    }
+
+    .container{
+      width:350px;
+      background:#fff;
+      padding:30px;
+      border-radius:20px;
+      text-align:center;
+      box-shadow:0 10px 25px rgba(0,0,0,0.2);
+    }
+
+    h1{
+      margin-bottom:20px;
+      color:#333;
+    }
+
+    .mode-buttons{
+      display:flex;
+      justify-content:center;
+      gap:10px;
+      margin-bottom:20px;
+      flex-wrap:wrap;
+    }
+
+    .mode-buttons button{
+      padding:10px 15px;
+      border:none;
+      border-radius:8px;
+      cursor:pointer;
+      font-weight:bold;
+      transition:0.3s;
+    }
+
+    .active{
+      background:#6c5ce7;
+      color:#fff;
+    }
+
+    .timer{
+      font-size:60px;
+      font-weight:bold;
+      margin:20px 0;
+      color:#ff4d4d;
+    }
+
+    .progress-container{
+      width:100%;
+      height:12px;
+      background:#ddd;
+      border-radius:10px;
+      overflow:hidden;
+      margin-bottom:25px;
+    }
+
+    .progress{
+      height:100%;
+      width:0%;
+      background:#6c5ce7;
+      transition:0.5s;
+    }
+
+    .controls{
+      display:flex;
+      justify-content:center;
+      gap:10px;
+      margin-bottom:20px;
+    }
+
+    .controls button{
+      padding:12px 18px;
+      border:none;
+      border-radius:10px;
+      cursor:pointer;
+      font-size:16px;
+      font-weight:bold;
+      transition:0.3s;
+    }
+
+    .start{
+      background:#28a745;
+      color:white;
+    }
+
+    .pause{
+      background:#ffc107;
+    }
+
+    .reset{
+      background:#dc3545;
+      color:white;
+    }
+
+    button:hover{
+      transform:scale(1.05);
+    }
+
+    .task-section{
+      margin-top:20px;
+    }
+
+    .task-section input{
+      width:70%;
+      padding:10px;
+      border:1px solid #ccc;
+      border-radius:8px;
+      outline:none;
+    }
+
+    .task-section button{
+      padding:10px 15px;
+      border:none;
+      background:#6c5ce7;
+      color:white;
+      border-radius:8px;
+      cursor:pointer;
+    }
+
+    ul{
+      list-style:none;
+      margin-top:15px;
+      text-align:left;
+      max-height:150px;
+      overflow-y:auto;
+    }
+
+    ul li{
+      background:#f1f1f1;
+      padding:10px;
+      margin-bottom:8px;
+      border-radius:8px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+    }
+
+    ul li button{
+      background:red;
+      color:white;
+      border:none;
+      padding:5px 10px;
+      border-radius:5px;
+      cursor:pointer;
+    }
+
+    .dark-mode{
+      background:#1e1e1e;
+      color:white;
+    }
+
+    .dark-mode .container{
+      background:#2d2d2d;
+      color:white;
+    }
+
+    .dark-mode .timer{
+      color:#00ffcc;
+    }
+
+    .toggle-dark{
+      margin-top:15px;
+      background:#333;
+      color:white;
+      padding:10px 15px;
+      border:none;
+      border-radius:8px;
+      cursor:pointer;
+    }
+
+  </style>
+</head>
+<body>
+
+  <div class="container">
+
+    <h1>Pomodoro Timer</h1>
+
+    <div class="mode-buttons">
+      <button class="mode active" data-time="25">Pomodoro</button>
+      <button class="mode" data-time="5">Short Break</button>
+      <button class="mode" data-time="15">Long Break</button>
+    </div>
+
+    <div class="timer" id="timer">25:00</div>
+
+    <div class="progress-container">
+      <div class="progress" id="progress"></div>
+    </div>
+
+    <div class="controls">
+      <button class="start" id="startBtn">Start</button>
+      <button class="pause" id="pauseBtn">Pause</button>
+      <button class="reset" id="resetBtn">Reset</button>
+    </div>
+
+    <div class="task-section">
+      <input type="text" id="taskInput" placeholder="Enter Task">
+      <button id="addTaskBtn">Add</button>
+
+      <ul id="taskList"></ul>
+    </div>
+
+    <button class="toggle-dark" id="darkModeBtn">
+      Toggle Dark Mode
+    </button>
+
+  </div>
+
+  <script>
+
+    let timer = document.getElementById("timer");
+    let progress = document.getElementById("progress");
+
+    let startBtn = document.getElementById("startBtn");
+    let pauseBtn = document.getElementById("pauseBtn");
+    let resetBtn = document.getElementById("resetBtn");
+
+    let modeButtons = document.querySelectorAll(".mode");
+
+    let darkModeBtn = document.getElementById("darkModeBtn");
+
+    let taskInput = document.getElementById("taskInput");
+    let addTaskBtn = document.getElementById("addTaskBtn");
+    let taskList = document.getElementById("taskList");
+
+    let totalTime = 25 * 60;
+    let timeLeft = totalTime;
+
+    let interval = null;
+
+    function updateTimer(){
+
+      let minutes = Math.floor(timeLeft / 60);
+      let seconds = timeLeft % 60;
+
+      minutes = minutes < 10 ? "0" + minutes : minutes;
+      seconds = seconds < 10 ? "0" + seconds : seconds;
+
+      timer.innerText = `${minutes}:${seconds}`;
+
+      let progressPercent =
+        ((totalTime - timeLeft) / totalTime) * 100;
+
+      progress.style.width = progressPercent + "%";
+    }
+
+    function startTimer(){
+
+      if(interval) return;
+
+      interval = setInterval(() => {
+
+        if(timeLeft > 0){
+
+          timeLeft--;
+          updateTimer();
+
+        }else{
+
+          clearInterval(interval);
+          interval = null;
+
+          alert("Session Complete!");
+
+          let audio = new Audio(
+            "https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg"
+          );
+
+          audio.play();
+        }
+
+      },1000);
+    }
+
+    function pauseTimer(){
+      clearInterval(interval);
+      interval = null;
+    }
+
+    function resetTimer(){
+
+      clearInterval(interval);
+      interval = null;
+
+      timeLeft = totalTime;
+
+      updateTimer();
+    }
+
+    startBtn.addEventListener("click", startTimer);
+
+    pauseBtn.addEventListener("click", pauseTimer);
+
+    resetBtn.addEventListener("click", resetTimer);
+
+    modeButtons.forEach(button => {
+
+      button.addEventListener("click", () => {
+
+        modeButtons.forEach(btn =>
+          btn.classList.remove("active")
+        );
+
+        button.classList.add("active");
+
+        let minutes = button.dataset.time;
+
+        totalTime = minutes * 60;
+        timeLeft = totalTime;
+
+        resetTimer();
+      });
+
+    });
+
+    darkModeBtn.addEventListener("click", () => {
+      document.body.classList.toggle("dark-mode");
+    });
+
+    addTaskBtn.addEventListener("click", () => {
+
+      let taskText = taskInput.value.trim();
+
+      if(taskText === "") return;
+
+      let li = document.createElement("li");
+
+      li.innerHTML = `
+        ${taskText}
+        <button>Delete</button>
+      `;
+
+      li.querySelector("button").addEventListener("click", () => {
+        li.remove();
+      });
+
+      taskList.appendChild(li);
+
+      taskInput.value = "";
+    });
+
+    updateTimer();
+
+  </script>
+
+</body>
+</html>
